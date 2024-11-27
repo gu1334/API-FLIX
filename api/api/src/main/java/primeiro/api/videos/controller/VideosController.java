@@ -2,12 +2,15 @@ package primeiro.api.videos.controller;
 
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import primeiro.api.categoria.Categoria;
 import primeiro.api.categoria.repository.CategoriaRepository;
-import primeiro.api.exceptions.RecursoNaoEncontradoException;
+import primeiro.api.infra.exceptions.RecursoNaoEncontradoException;
 import primeiro.api.videos.DadosVideos;
 import primeiro.api.videos.Videos;
 import primeiro.api.videos.repository.VideosRepository;
@@ -29,7 +32,7 @@ public class VideosController {
 
     @PostMapping
     public ResponseEntity<Videos> crate(@RequestBody @Valid DadosVideos dados) {
-        if (dados.categoriaId() == null){
+        if (dados.categoriaId() == null) {
             throw new IllegalArgumentException("O ID da categoria não pode ser nulo.");
         }
 
@@ -47,6 +50,16 @@ public class VideosController {
         List<Videos> videos = videosRepository.findAll();
         return ResponseEntity.ok(videos);
 
+    }
+
+    @GetMapping("/page")
+    public  ResponseEntity<?> findByPage(@PageableDefault(size = 5) Pageable pageable){
+        try {
+            Page<Videos> videos = videosRepository.findAll(pageable);
+            return ResponseEntity.ok(videos);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro: " + e.getMessage());
+        }
     }
 
     @GetMapping("{id}")
@@ -103,7 +116,7 @@ public class VideosController {
             return ResponseEntity.ok(videoAtualizado);
 
 
-        }else {
+        } else {
             throw new RecursoNaoEncontradoException("Vídeo com ID " + id + " não foi encontrado.");
         }
     }

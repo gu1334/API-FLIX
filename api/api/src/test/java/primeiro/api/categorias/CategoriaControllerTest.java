@@ -4,24 +4,20 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.web.servlet.MockMvc;
 import primeiro.api.categoria.Categoria;
 import primeiro.api.categoria.DadosCategoria;
 import primeiro.api.categoria.controller.CategoriaController;
 import primeiro.api.categoria.repository.CategoriaRepository;
+import primeiro.api.infra.exceptions.RecursoNaoEncontradoException;
 import primeiro.api.videos.Videos;
 import primeiro.api.videos.repository.VideosRepository;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import java.util.List;
@@ -241,11 +237,11 @@ public class CategoriaControllerTest {
         // Chama o método delete do controlador
         ResponseEntity<Categoria> response = categoriaController.delete(categoria1.getId());
 
-        // Verifica se o status HTTP é OK (200)
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+        // Verifica se o status HTTP é NO_CONTENT (204)
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
 
-        // Verifica se o corpo da resposta é a categoria excluída
-        assertEquals(categoria1, response.getBody());
+        // Verifica que o corpo da resposta está vazio (não há conteúdo)
+        assertNull(response.getBody());
 
         // Verifica se o método findById foi chamado uma vez
         verify(categoriaRepository, times(1)).findById(categoria1.getId());
@@ -282,13 +278,42 @@ public class CategoriaControllerTest {
     @Test
     public void testeUpdate(){
 
+        // Cria a categoria
+        Categoria categoria1 = new Categoria();
+        categoria1.setTitulo("Deletar por ID teste");
+        categoria1.setCor("teste cor");
+
+        DadosCategoria dadosCategoria = new DadosCategoria("update","update");
+
+        // Simula que a categoria existe no banco de dados
+        when(categoriaRepository.findById(1L)).thenReturn(Optional.of(categoria1));
+
+        // Mock do repositório para salvar a categoria atualizada
+        when(categoriaRepository.save(any(Categoria.class))).thenReturn(categoria1);
+
+        // Chama o método delete do controlador
+        ResponseEntity<Categoria> response = categoriaController.update(1L, dadosCategoria);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        // Verifica se o método findById foi chamado uma vez
+        verify(categoriaRepository, times(1)).save(any(Categoria.class));
 
     }
 
     @Test
     public void testeUpdateErro(){
 
+        // Mock do repositório para não encontrar a categoria
+        when(categoriaRepository.findById(1L)).thenReturn(Optional.empty());
 
+        // Dados da categoria
+        DadosCategoria dadosCategoria = new DadosCategoria("Ação Atualizada", "#00FF00");
+
+        // Verifica se a exceção é lançada
+        assertThrows(RecursoNaoEncontradoException.class, () -> {
+            categoriaController.update(1L, dadosCategoria);
+        });
     }
 
 

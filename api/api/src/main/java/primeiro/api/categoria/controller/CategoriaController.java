@@ -2,13 +2,16 @@ package primeiro.api.categoria.controller;
 
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import primeiro.api.categoria.Categoria;
 import primeiro.api.categoria.DadosCategoria;
 import primeiro.api.categoria.repository.CategoriaRepository;
-import primeiro.api.exceptions.RecursoNaoEncontradoException;
+import primeiro.api.infra.exceptions.RecursoNaoEncontradoException;
 import primeiro.api.videos.Videos;
 import primeiro.api.videos.repository.VideosRepository;
 
@@ -40,6 +43,15 @@ public class CategoriaController {
         return ResponseEntity.status(HttpStatus.OK).body(categorias);
     }
 
+    @GetMapping("/page")
+    public  ResponseEntity<?> findByPage(@PageableDefault(size = 5) Pageable pageable){
+        try {
+            Page<Categoria> categorias = categoriaRepository.findAll(pageable);
+            return ResponseEntity.ok(categorias);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro: " + e.getMessage());
+        }
+    }
 
     @GetMapping("{id}")
     public ResponseEntity<Categoria> encontrarPeloID(@PathVariable Long id) {

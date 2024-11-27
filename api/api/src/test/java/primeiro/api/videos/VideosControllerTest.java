@@ -11,6 +11,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import primeiro.api.categoria.Categoria;
+import primeiro.api.categoria.DadosCategoria;
+import primeiro.api.categoria.controller.CategoriaController;
 import primeiro.api.categoria.repository.CategoriaRepository;
 import primeiro.api.videos.controller.VideosController;
 import primeiro.api.videos.repository.VideosRepository;
@@ -35,6 +37,9 @@ public class VideosControllerTest {
     @InjectMocks
     private VideosController videosController;
 
+    @InjectMocks
+    private CategoriaController categoriaController;
+
     @Test
     public void testeCadastrar() {
         DadosVideos dadosVideo = new DadosVideos(3L, "Um maluco no pedaço", "Série de comédia", "https://www.url.com.br/");
@@ -46,6 +51,25 @@ public class VideosControllerTest {
         ResponseEntity<Videos> response = videosController.crate(dadosVideo);
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(videoMock, response.getBody());
+        verify(videosRepository, times(1)).save(any(Videos.class));
+    }
+
+    @Test
+    public void testeCadastrarErro(){
+        DadosVideos dadosVideos = new DadosVideos(1L,"Erro", "teste", "https://www.url.com.br/");
+        when(videosRepository.save(any(Videos.class))).thenThrow(new RuntimeException("Erro ao salvar a categoria"));
+
+        ResponseEntity<Videos> response = videosController.crate(dadosVideos);
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        verify(videosRepository, times(1)).save(any(Videos.class));
+    }
+    @Test
+    public void testeCadastrarErroValidacao(){
+        DadosVideos dadosVideos = new DadosVideos(null,"", "teste", "https://www.url.com.br/");
+        when(videosRepository.save(any(Videos.class))).thenThrow(new RuntimeException("Erro ao salvar a videos"));
+
+        ResponseEntity<Videos> response = videosController.crate(dadosVideos);
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         verify(videosRepository, times(1)).save(any(Videos.class));
     }
 
@@ -77,6 +101,16 @@ public class VideosControllerTest {
     }
 
     @Test
+    public void testeListarErro(){
+
+        when(videosRepository.findAll()).thenThrow(new RuntimeException("Erro ao listar"));
+        ResponseEntity<List<Videos>> response = videosController.list();
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        verify(videosRepository, times(1)).findAll();
+
+    }
+
+    @Test
     public void testeListarPorID(){
 
          Videos video1 = new Videos();
@@ -92,6 +126,14 @@ public class VideosControllerTest {
         assertEquals(video1, response.getBody());
         verify(videosRepository, times(1)).findById(video1.getId());
 
+    }
+
+    @Test
+    public void testeListarPorIDErro(){
+        when(videosRepository.findById(20L)).thenReturn(Optional.empty());
+        ResponseEntity<Videos> response = videosController.findByid(20L);
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        verify(videosRepository, times(1)).findById(20L);
     }
 
     @Test
@@ -111,6 +153,27 @@ public class VideosControllerTest {
 
 
     }
+
+    @Test
+    public void testeShowVideosByCategoryErro(){
+        Categoria categoria1 = new Categoria();
+        categoria1.setId(null);
+
+        Videos videos1 = new Videos(1L, "teste", "teste", "https://www.google.com.br/videos/", categoria1);
+
+        List<Videos> listaVideos1 = List.of(videos1);
+        when(categoriaRepository.findById(20L)).thenReturn(Optional.empty());
+        when(videosRepository.findByCategoria(categoria1)).thenReturn(listaVideos1);
+        ResponseEntity<List<Videos>> response = categoriaController.showVideosByCategory(30L);
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        verify(categoriaRepository, times(1)).findById(20L);
+
+
+
+
+
+    }
+
 
 
 
